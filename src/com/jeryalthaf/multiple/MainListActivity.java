@@ -6,6 +6,13 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.ListActivity;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -14,6 +21,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 public class MainListActivity extends ListActivity {
@@ -28,8 +37,8 @@ public class MainListActivity extends ListActivity {
 		setContentView(R.layout.activity_main_list);
 		
 		if(isNetworkAvailable()){
-		GetBlogPostsTask getBlogPostsTask = new GetBlogPostsTask();
-		getBlogPostsTask.execute();
+			GetBlogPostsTask getBlogPostsTask = new GetBlogPostsTask();
+			getBlogPostsTask.execute();
 		}
 		else{
 			Toast.makeText(this,"Network is unavailable", Toast.LENGTH_LONG).show();
@@ -53,10 +62,12 @@ public class MainListActivity extends ListActivity {
 		return true;
 	}
 	
-	private class GetBlogPostsTask extends AsyncTask<Object, Void, String> {
+	private class GetBlogPostsTask extends AsyncTask<String, String, String> {
+		
+		String responseData = null;
 
 		@Override
-		protected String doInBackground(Object... arg0) {
+		protected String doInBackground(String... arg0) {
 			// TODO Auto-generated method stub
 			int responseCode = -1;
 			try {
@@ -71,14 +82,13 @@ public class MainListActivity extends ListActivity {
 					int contentlength = connection.getContentLength();
 					char[] charArray = new char[contentlength];
 					reader.read(charArray);
-					String responseData = new String(charArray);
+					responseData = new String(charArray);
 					Log.v(TAG,responseData);
 				}
 				
 				Log.i(TAG, "Code : " + responseCode);
 						
 			} catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
 				Log.e(TAG,"Exception caught ;", e);
 			}
 			catch (IOException e){
@@ -88,8 +98,33 @@ public class MainListActivity extends ListActivity {
 				Log.e(TAG,"Exception caught ;", e);
 			}
 			
-			return null;
-		}
+			return responseData;
+		}	
 		
+		@Override
+		protected void onPostExecute(String result) {
+			super.onPostExecute(result);
+			
+			List<String> list = new ArrayList<String>();
+			list.add("Apple");
+			
+			try {
+				JSONObject jso = new JSONObject(result);
+				JSONArray jsa = jso.getJSONArray("posts");
+				for (int i = 0; i < jsa.length(); i++) {
+					list.add(jsa.getJSONObject(i).getString("title"));
+				}
+				
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			
+			ListView lv = (ListView) findViewById(android.R.id.list);
+			ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, list);
+			lv.setAdapter(adapter);
+			
+		}
 	}
+	
+	
 }
